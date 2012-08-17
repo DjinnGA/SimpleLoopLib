@@ -1,0 +1,96 @@
+Modified 17th August Giles Allensby
+
+***** SimpleLoopLib for Gideros Studio ****
+**********************************
+
+Simply add files to project
+
+Lua API
+
+//Printed tables will display their contents in the debugger
+
+screenW returns screen Width
+screenH returns screen Height
+
+---------------- Shape Functions -------------
+Shape:setFillColor((int 0-255) r, (int 0-255) g, (int 0-255) b)
+Shape:setPos(int x, int y)
+
+---------------- Image Functions -------------
+Bitmap:setReferencePoint(display.pos or {(float 0-1) x, (float 0-1) y}) -- See Possible Reference Points Below
+Bitmap:setFillColor((int 0-255) r, (int 0-255) g, (int 0-255) b)
+Bitmap:setPos(int x, int y)
+Bitmap:setScaleP(float scale)
+
+---------------- Text Functions -------------
+TextField:setTextColorRGB(TextField field, (int 0-255) r, (int 0-255) g, (int 0-255) b)
+
+---------------- Possible Reference Points -------------
+display.c = Center
+display.cr = Center Right
+display.cl = Center Left
+display.tl = Top Left
+display.tr = Top Right
+display.bl = Bottom Left
+display.br = Bottom Right
+
+display.contentWidth = screen Width
+display.contentHeight = screen Height
+
+---------------- Display Functions -------------
+--Rectangle
+local rect = display.newRect(int x, int y, int width, int height)
+--Circle
+local circle = display.newCircle(int x, int y, int radius)
+--Elipse
+local elipse = display.newElipse(int x, int y, int radiusX, int radiusY)
+--Image
+local image = display.newImage(string file, string baseDir or nil, int x, int y)
+--group
+local group = display.newGroup()
+--text
+local text = display.newText(string text, int x, int y, font)
+
+---------------- Transition Functions ----------------
+transition.to(tweens, params)
+
+tweens may be table of objects {playBtn, optionsBtn} or single object playBtn
+possible params standard params and delay, ease, repeatCount, reflect, time
+
+:: EXAMPLE ::
+
+	local playBtn = display.newImage("playBtn.png",nil, 100, 100)
+	transition.to(self.playBtn, {time=500, y=-60})
+
+---------------- Saving and Loading Functions ----------------
+Defaults is the data
+
+:: DEFAULTS EXAMPLE ::
+
+Defaults ({
+	bestScore = 200
+	volume = .4
+})
+
+:: FIRST LOAD EXAMPLE ::
+
+canLoad = Load()
+if canLoad == false then
+	Save() -- Saves defaults to file
+end
+
+:: SAVING EXAMPLE ::
+
+    local myData     = {}
+    myData.bestScore = 500
+    myData.volume    = .8
+
+    Save(myData)
+
+:: LOADING EXAMPLE ::
+
+    local myData = Load()
+    print(myData.bestScore) <== 500
+    print(myData.volume)    <== .8
+
+]]
