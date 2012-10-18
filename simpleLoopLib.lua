@@ -3,9 +3,13 @@
 ------------------------- Variables ----------------------
 
 -- Screen Width
-screenW = application:getContentWidth()
+screenW = application:getLogicalWidth()
 -- Screen Height
-screenH = application:getContentHeight()
+screenH = application:getLogicalHeight()
+--Screen Center X
+centerX = screenW/2
+--Screen Center Y
+centerY = screenH/2
 
 -- Arrays (Tables)
 display = {}
@@ -13,6 +17,20 @@ physics = {}
 package = {}
 transition = {}
 storyboard = {}
+
+-------------------------- Group Helper ----------------------------
+displayGroup = gideros.class(Sprite)
+function displayGroup:init(addToStage)
+	if addToStage == nil then addToStage = true; end
+	if addToStage then
+		stage:addChild(self)
+	end
+	self.group = true
+end
+
+function displayGroup:insert(sprite)
+	self:addChild(sprite)
+end
 
 --------------------- Color Conversion Functions -----------------------
 
@@ -48,6 +66,7 @@ function Shape:setReferencePoint(pos)
 end
 
 function Shape:setFillColor(re,gr,bl)
+	self:setColorTransform(1,1,1)
 	self:setColorTransform(re/255,gr/255,bl/255)
 end
 
@@ -77,6 +96,7 @@ function Bitmap:setReferencePoint(pos)
 end
 
 function Bitmap:setFillColor(re,gr,bl)
+	self:setColorTransform(1,1,1)
 	self:setColorTransform(re/255,gr/255,bl/255)
 end
 
@@ -86,10 +106,6 @@ end
 
 function Bitmap:setScaleP(scale)
 	self:setScale(scale)
-end
-
-function Bitmap:addEventListener(type, toRun)
-	
 end
 
 -------------------------- Display Functions ----------------------------
@@ -188,9 +204,19 @@ display.newElipse = function(x, y, radiusX, radiusY)
 end
 
 display.newImage = function(file, baseDir, x, y)
-	local xPos = x or 0
-	local yPos = y or 0
-	local baseDirLoc = baseDir or ""
+	local xPos
+	local yPos
+	local baseDirLoc
+
+	if type(baseDir) ~= "number" then
+		xPos = x or 0
+		yPos = y or 0
+		baseDirLoc = baseDir or ""
+	else
+		xPos = baseDir or 0
+		yPos = x or 0
+		baseDirLoc = ""
+	end
 	
 	local fileLoc
 	if baseDirLoc ~= "" and type(baseDirLoc) ~= "integer" then
@@ -205,7 +231,7 @@ display.newImage = function(file, baseDir, x, y)
 end
 
 display.newGroup = function()
-	local this = {}
+	local this = displayGroup:new()
 	return this
 end
 
@@ -325,17 +351,113 @@ storyboard.newScene = function()
 	return(this)
 end
 
-function Sprite:insert(obj)
-	self:addChild(obj)
+function stage:insert(sprite)
+	self:addChild(sprite)
+end
+
+function Sprite:insert(sprite)
+	self:addChild(sprite)
 end
 
 --------------------------- Physics Functions ------------------------------
 
---physics:addBody = function(object, vars)
-	--for i = 0,#vars do
-		
-	--end
---end
+physics.addBody = function(b2world, object, args)
+	local bodyDef = {}
+	if args.type then
+		if args.type == "static" then
+			bodyDef.type = b2.STATIC_BODY
+		elseif args.type == "kinematic" then
+			bodyDef.type = b2.KINEMATIC_BODY
+		elseif args.type == "dynamic" then
+			bodyDef.type = b2.DYNAMIC_BODY
+		else
+			bodyDef.type = b2.DYNAMIC_BODY
+		end
+	end
+ 
+	bodyDef.density = args.density or 1.0
+	bodyDef.restitution = args.bounce or 0.0
+	if args.restitution then
+		bodyDef.restitution = args.restitution
+	end
+	bodyDef.friction = args.friction or 0.0
+	bodyDef.isSensor = args.isSensor or false
+ 
+	if args.width then
+		bodyDef.width = args.width
+	else
+		bodyDef.width = object:getWidth()
+	end
+ 
+	if args.height then 
+		bodyDef.height = args.height
+	else
+		bodyDef.height = object:getHeight()
+	end
+ 
+	if args.radius then
+		bodyDef.radius = args.radius
+	end
+ 
+	local thisShape
+	local thisBody = b2world:createBody({type = bodyDef.type})
+ 
+	bodyDef.x = math.floor(object:getX() + bodyDef.width/2)
+	bodyDef.y = math.floor(object:getY() + bodyDef.height/2)	
+ 
+	if args.radius then
+		bodyDef.width = object:getWidth()
+		bodyDef.height = object:getHeight()
+		bodyDef.x = math.floor(object:getX() + (bodyDef.width/2))
+		bodyDef.y = math.floor(object:getY() + (bodyDef.height/2))
+		thisShape = b2.CircleShape.new(0, 0, bodyDef.radius)
+	else
+		thisShape = b2.PolygonShape.new()
+		thisShape:setAsBox(bodyDef.width/2, bodyDef.height/2)
+	end
+ 
+	local thisFixture = thisBody:createFixture{shape = thisShape, density = bodyDef.density, restitution = bodyDef.restitution, friction = bodyDef.friction, isSensor = bodyDef.isSensor}
+	thisBody:setPosition(bodyDef.x, bodyDef.y)
+ 
+	object.image:setAnchorPoint(0.5, 0.5)
+	object:setPosition(bodyDef.x, bodyDef.y)
+ 
+	object.body = thisBody
+	object.fixture = thisFixture
+end
+ 
+local function updatePosition(object)
+	local body = object.body
+	local bodyX, bodyY = body:getPosition()
+	object:setPosition(bodyX, bodyY)
+	object:setRotation(body:getAngle() * 180 / math.pi)
+end
+ 
+function updatePhysicsObjects(physWorld)
+	physWorld:step(1/60, 8, 3)	-- edit the step values if required. These are good defaults!
+	for i = 1, stage:getNumChildren() do
+		local sprite = stage:getChildAt(i)
+		-- determine if this is a sprite, or a group
+		if sprite.group == nil then
+			local body = sprite.body
+			-- if it's not a group, but HAS a body (ie, it's a physical object directly on the stage)
+			if body then
+				updatePosition(sprite)
+			else 
+ 
+			end
+		elseif sprite.group == true then
+			-- if it IS a group, then iterate through the groups children
+			for j = 1, sprite:getNumChildren() do
+				local childSprite = sprite:getChildAt(j)
+				local body = childSprite.body
+				if body then
+					updatePosition(childSprite)
+				end				
+			end
+		end
+	end
+end
 
 --------------------------- Extra Functions --------------------------------
 
