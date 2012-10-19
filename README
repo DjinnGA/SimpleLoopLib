@@ -51,6 +51,11 @@ local group = display.newGroup()
 --text
 local text = display.newText(string text, int x, int y, font)
 
+---------------- Easy Animted Sprite Function -------------
+The texturepacker .png and .txt files must be in the same location
+spriteName is the file name without the .png or .txt on the end
+local player = loadSprite(string spriteName, int startFrame, int endFrame)
+
 ---------------- Transition Functions ----------------
 transition.to(tweens, params)
 
