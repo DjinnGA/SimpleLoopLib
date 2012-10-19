@@ -459,6 +459,75 @@ function updatePhysicsObjects(physWorld)
 	end
 end
 
+--------------------------- Animated Sprite Functions --------------------------------
+
+function loadSprite(spriteName, startFrame, endFrame)
+	local inp = assert(io.open(spriteName..".txt"))
+	local data = inp:read("*all")
+	local lines = {}
+	local frames = {}
+	
+	local i = 0
+	for word in string.gmatch(data, "(.-)\n") do
+		lines[i]=word
+		i = i + 1
+	end
+	
+	local ii
+	for i = 0, #lines do
+		ii = 0
+		for word in string.gmatch(lines[i], "(.-),") do
+			if ii == 0 then
+				frames[i] = word
+			end
+			ii = ii + 1
+		end
+	end
+	
+	
+	local newSprite = Core.class(Sprite)
+	
+	function newSprite:init()
+		local pack = TexturePack.new(spriteName..".txt", spriteName..".png")
+	
+		self.anim = {}
+		ii = 0
+		for i=startFrame, endFrame do
+			self.anim[ii]=Bitmap.new(pack:getTextureRegion(frames[i]))
+			ii = ii+1
+		end
+		
+		self.frame = 1
+		self:addChild(self.anim[1])
+
+		self.nframes = #self.anim
+
+		self.subframe = 0
+		
+		self:addEventListener(Event.ENTER_FRAME, self.onEnterFrame, self)
+	end
+	
+	function newSprite:onEnterFrame()
+		self.subframe = self.subframe + 1
+
+		if self.subframe > 1 then
+			self:removeChild(self.anim[self.frame])
+			
+			self.frame = self.frame + 1
+			if self.frame > self.nframes then
+				self.frame = 1
+			end
+
+			self:addChild(self.anim[self.frame])
+			
+			self.subframe = 0
+		end
+	end
+	
+	local this = newSprite:new()
+	return this
+end
+
 --------------------------- Extra Functions --------------------------------
 
 function tileImage(image,x,y,width,height)
